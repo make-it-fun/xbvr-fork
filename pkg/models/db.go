@@ -35,23 +35,51 @@ func GetDBConn() *dburl.URL {
 	return dbConn
 }
 
+// isTransient reports whether err is a temporary SQLite condition that's worth
+// retrying (lock/busy contention). Permanent errors — UNIQUE/constraint
+// violations, schema errors, etc. — return false so the retry bails out
+// immediately instead of hammering the same doomed write 10 times.
+func isTransient(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "database is locked") ||
+		strings.Contains(msg, "database is busy") ||
+		strings.Contains(msg, "table is locked") ||
+		strings.Contains(msg, "sqlite_busy")
+}
+
+// isDuplicateName reports whether err is a unique-constraint violation on
+// actors.name — the signature of two concurrent scrape goroutines racing to
+// create the same new actor. The loser can recover by adopting the winning row
+// (see Actor.Save) instead of failing.
+func isDuplicateName(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "actors.name") &&
+		(strings.Contains(msg, "unique constraint failed") || strings.Contains(msg, "duplicate"))
+}
+
+// SaveWithRetry persists i, retrying only on transient SQLite contention. A
+// permanent failure (or exhausted retries) is logged at error level and the
+// error is returned to the caller. It must NEVER call log.Fatal: a single
+// failed row-save should skip that row, not take down the whole server.
 func SaveWithRetry(db *gorm.DB, i interface{}) error {
-	var err error
-	err = retry.Do(
+	err := retry.Do(
 		func() error {
-			err = db.Save(i).Error
-			if err != nil {
-				return err
-			}
-			return nil
+			return db.Save(i).Error
 		},
+		retry.RetryIf(isTransient),
 	)
 
 	if err != nil {
-		log.Fatal("Failed to save ", err)
+		log.Error("Failed to save: ", err)
 	}
 
-	return nil
+	return err
 }
 
 func GetDB() (*gorm.DB, error) {

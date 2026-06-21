@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ProtonMail/go-appdir"
 )
@@ -57,7 +58,12 @@ func InitPaths() {
 	db_connection_pool_size := flag.Int("db_connection_pool_size", 0, "Optional: sets a limit to the number of db connections while scraping")
 	concurrentSscrapers := flag.Int("concurrent_scrapers", 0, "Optional: sets a limit to the number of concurrent scrapers")
 
-	flag.Parse()
+	// Skip flag parsing under `go test`: the test binary (named "*.test"/"*.test.exe")
+	// passes its own -test.* flags, which this flag set doesn't define and would
+	// abort on. Production binaries (xbvr.exe) parse flags normally.
+	if !strings.HasSuffix(os.Args[0], ".test") && !strings.HasSuffix(os.Args[0], ".test.exe") {
+		flag.Parse()
+	}
 
 	if *app_dir == "" {
 		tmp := os.Getenv("XBVR_APPDIR")

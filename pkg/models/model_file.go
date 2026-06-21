@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/avast/retry-go/v4"
 )
 
 type File struct {
@@ -53,21 +51,7 @@ func (f *File) Save() error {
 	db, _ := GetDB()
 	defer db.Close()
 
-	var err error = retry.Do(
-		func() error {
-			err := db.Save(&f).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
-
-	return nil
+	return SaveWithRetry(db, f)
 }
 
 func (f *File) GetIfExistByPK(id uint) error {

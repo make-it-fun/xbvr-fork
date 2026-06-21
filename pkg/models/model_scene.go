@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
-	"github.com/avast/retry-go/v4"
 	"github.com/jinzhu/gorm"
 	"github.com/markphelps/optional"
 
@@ -36,21 +35,7 @@ type SceneCuepoint struct {
 func (o *SceneCuepoint) Save() error {
 	commonDb, _ := GetCommonDB()
 
-	var err error = retry.Do(
-		func() error {
-			err := commonDb.Save(&o).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
-
-	return nil
+	return SaveWithRetry(commonDb, o)
 }
 
 // Scene data model
@@ -142,21 +127,7 @@ type Config struct {
 func (i *Scene) Save() error {
 	commonDb, _ := GetCommonDB()
 
-	var err error = retry.Do(
-		func() error {
-			err := commonDb.Save(&i).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
-
-	return nil
+	return SaveWithRetry(commonDb, i)
 }
 
 func (i *Scene) ToJSON() ([]byte, error) {

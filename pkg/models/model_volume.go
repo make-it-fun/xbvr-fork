@@ -2,13 +2,11 @@ package models
 
 import (
 	"context"
+	"github.com/putdotio/go-putio"
+	"golang.org/x/oauth2"
 	"io"
 	"os"
 	"time"
-
-	"github.com/avast/retry-go/v4"
-	"github.com/putdotio/go-putio"
-	"golang.org/x/oauth2"
 )
 
 type Volume struct {
@@ -62,21 +60,7 @@ func (o *Volume) Save() error {
 	db, _ := GetDB()
 	defer db.Close()
 
-	var err error = retry.Do(
-		func() error {
-			err := db.Save(&o).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
-
-	return nil
+	return SaveWithRetry(db, o)
 }
 
 func (o *Volume) Files() []File {

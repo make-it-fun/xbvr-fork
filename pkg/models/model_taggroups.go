@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/avast/retry-go/v4"
 )
 
 type TagGroup struct {
@@ -21,21 +19,7 @@ func (i *TagGroup) Save() error {
 	db, _ := GetDB()
 	defer db.Close()
 
-	err := retry.Do(
-		func() error {
-			err := db.Save(&i).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
-
-	return nil
+	return SaveWithRetry(db, i)
 }
 
 func (o *TagGroup) GetIfExistByPK(id uint) error {

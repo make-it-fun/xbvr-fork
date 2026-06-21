@@ -99,21 +99,31 @@ type ActorLink struct {
 func (i *Actor) Save() error {
 	commonDb, _ := GetCommonDB()
 
-	var err error = retry.Do(
+	err := retry.Do(
 		func() error {
-			err := commonDb.Save(&i).Error
-			if err != nil {
-				return err
-			}
-			return nil
+			return commonDb.Save(i).Error
 		},
+		retry.RetryIf(isTransient),
 	)
 
-	if err != nil {
-		log.Fatal("Failed to save ", err)
+	if err != nil && isDuplicateName(err) {
+		// Concurrent scrape goroutines raced to create the same actor by name;
+		// this one lost on the actors.name unique index. Adopt the row that won
+		// the race instead of dropping the actor — and without re-saving over it
+		// (gorm's Save writes every column, which would clobber the winner's data
+		// with this loser's zero-valued fields).
+		var existing Actor
+		if commonDb.Where(&Actor{Name: i.Name}).First(&existing).Error == nil && existing.ID != 0 {
+			*i = existing
+			err = nil
+		}
 	}
 
-	return nil
+	if err != nil {
+		log.Error("Failed to save actor ", i.Name, ": ", err)
+	}
+
+	return err
 }
 
 func (i *Actor) CountActorTags() {

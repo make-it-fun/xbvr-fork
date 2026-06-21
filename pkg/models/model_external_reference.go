@@ -2,15 +2,13 @@ package models
 
 import (
 	"encoding/json"
+	"github.com/markphelps/optional"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/avast/retry-go/v4"
-	"github.com/markphelps/optional"
 
 	"github.com/xbapps/xbvr/pkg/common"
 )
@@ -138,18 +136,7 @@ func (o *ExternalReferenceLink) FindByExternaID(externalSource string, externalI
 func (o *ExternalReference) Save() {
 	commonDb, _ := GetCommonDB()
 
-	err := retry.Do(
-		func() error {
-			err := commonDb.Save(&o).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
+	SaveWithRetry(commonDb, o)
 }
 
 func (o *ExternalReference) Delete() {
@@ -178,18 +165,7 @@ func (o *ExternalReference) AddUpdateWithUrl() {
 		}
 	}
 
-	err := retry.Do(
-		func() error {
-			err := commonDb.Save(&o).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
+	SaveWithRetry(commonDb, o)
 }
 
 func (o *ExternalReference) AddUpdateWithId() {
@@ -208,35 +184,13 @@ func (o *ExternalReference) AddUpdateWithId() {
 		}
 	}
 
-	err := retry.Do(
-		func() error {
-			err := commonDb.Save(&o).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
+	SaveWithRetry(commonDb, o)
 }
 
 func (o *ExternalReferenceLink) Save() {
 	commonDb, _ := GetCommonDB()
 
-	err := retry.Do(
-		func() error {
-			err := commonDb.Save(&o).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
+	SaveWithRetry(commonDb, o)
 }
 
 func (o *ExternalReferenceLink) Find(externalSource string, internalName string) error {

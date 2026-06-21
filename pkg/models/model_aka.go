@@ -4,8 +4,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/avast/retry-go/v4"
 )
 
 type Aka struct {
@@ -22,21 +20,7 @@ type Aka struct {
 func (i *Aka) Save() error {
 	commonDb, _ := GetCommonDB()
 
-	err := retry.Do(
-		func() error {
-			err := commonDb.Save(&i).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
-
-	return nil
+	return SaveWithRetry(commonDb, i)
 }
 
 func (o *Aka) GetIfExistByPK(id uint) error {

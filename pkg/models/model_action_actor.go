@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/avast/retry-go/v4"
 )
 
 type ActionActor struct {
@@ -28,19 +26,7 @@ func (a *ActionActor) Save() {
 	db, _ := GetDB()
 	defer db.Close()
 
-	var err error = retry.Do(
-		func() error {
-			err := db.Save(&a).Error
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-
-	if err != nil {
-		log.Fatal("Failed to save ", err)
-	}
+	SaveWithRetry(db, a)
 }
 
 func AddActionActor(actorId uint, source string, actionType string, changedColumn string, newValue string) {
