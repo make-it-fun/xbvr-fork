@@ -108,7 +108,10 @@ func InitPaths() {
 		if EnvConfig.DatabaseURL != "" {
 			DATABASE_URL = EnvConfig.DatabaseURL
 		} else {
-			DATABASE_URL = fmt.Sprintf("sqlite:%v", filepath.Join(AppDir, "main.db"))
+			// _busy_timeout makes a writer wait (up to 5s) for a lock instead of
+			// failing instantly with "database is locked" — the source of the
+			// post-scrape StashDB aka-match crashes.
+			DATABASE_URL = fmt.Sprintf("sqlite:%v?_busy_timeout=5000", filepath.Join(AppDir, "main.db"))
 		}
 	}
 

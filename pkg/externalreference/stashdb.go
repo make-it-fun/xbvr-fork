@@ -489,8 +489,11 @@ func simplifyName(name string) string {
 func MatchAkaPerformers() {
 	tlog := log.WithField("task", "scrape")
 	tlog.Info("Starting Match on Actor Aka/Aliases")
-	db, _ := models.GetDB()
-	defer db.Close()
+	// Use the shared common connection (not a second GetDB handle) so these
+	// reads don't contend with the writes below — extref.Save()/UpdateXbvrActor
+	// also go through the common connection. Two connections on one SQLite file
+	// was the "database is locked" source. Do NOT Close() — it's shared.
+	db, _ := models.GetCommonDB()
 
 	type AkaList struct {
 		ActorId           string
